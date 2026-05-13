@@ -1,56 +1,65 @@
 #include "MQTTController.h"
+#include <ArduinoJson.h>
 
-MQTTController* MQTTController::instance = nullptr;
+MQTTController *MQTTController::instance = nullptr;
 
 MQTTController::MQTTController(
-  const char* ssid,
-  const char* password,
-  const char* mqttServer,
-  uint16_t mqttPort,
-  const char* topic,
-  Navigation& robot
-)
-: client(wifiClient),
-  robot(robot),
-  ssid(ssid),
-  password(password),
-  mqttServer(mqttServer),
-  mqttPort(mqttPort),
-  topicName(topic) {
+    const char *ssid,
+    const char *password,
+    const char *mqttServer,
+    uint16_t mqttPort,
+    const char *topic,
+    Navigation &robot)
+    : client(wifiClient),
+      robot(robot),
+      ssid(ssid),
+      password(password),
+      mqttServer(mqttServer),
+      mqttPort(mqttPort),
+      topicName(topic)
+{
   instance = this;
 }
 
-void MQTTController::begin() {
+void MQTTController::begin()
+{
   connectWiFi();
   client.setServer(mqttServer, mqttPort);
   client.setCallback(MQTTController::mqttCallbackStatic);
   connectMQTT();
 }
 
-void MQTTController::loop() {
-  if (WiFi.status() != WL_CONNECTED) {
+void MQTTController::loop()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
     connectWiFi();
   }
 
-  if (!client.connected()) {
+  if (!client.connected())
+  {
     connectMQTT();
   }
 
   client.loop();
 
-  if (moveUntil != 0 && millis() > moveUntil) {
+  if (moveUntil != 0 && millis() > moveUntil)
+  {
     robot.stopRobot();
     moveUntil = 0;
   }
 }
 
-void MQTTController::connectWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+void MQTTController::connectWiFi()
+{
+  if (WiFi.status() == WL_CONNECTED)
+    return;
 
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -61,19 +70,24 @@ void MQTTController::connectWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-void MQTTController::connectMQTT() {
-  while (!client.connected()) {
+void MQTTController::connectMQTT()
+{
+  while (!client.connected())
+  {
     Serial.print("Connecting to MQTT... ");
 
     String clientId = "ESP32-Navigation-";
     clientId += String((uint32_t)ESP.getEfuseMac(), HEX);
 
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str()))
+    {
       Serial.println("connected");
       client.subscribe(topicName.c_str());
       Serial.print("Subscribed to topic: ");
       Serial.println(topicName);
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" retrying in 2 seconds");
@@ -82,65 +96,146 @@ void MQTTController::connectMQTT() {
   }
 }
 
-void MQTTController::mqttCallbackStatic(char* topic, byte* payload, unsigned int length) {
-  if (instance != nullptr) {
+void MQTTController::mqttCallbackStatic(char *topic, byte *payload, unsigned int length)
+{
+  if (instance != nullptr)
+  {
     instance->handleMessage(topic, payload, length);
   }
 }
 
-void MQTTController::handleMessage(char* topic, byte* payload, unsigned int length) {
+void MQTTController::handleMessage(
+    char *topic,
+    byte *payload,
+    unsigned int length)
+{
   String incomingTopic = String(topic);
-  if (incomingTopic != topicName) return;
 
-  String cmd;
-  for (unsigned int i = 0; i < length; i++) {
-    cmd += (char)payload[i];
+  if (incomingTopic != topicName)
+    return;
+
+  // Convert payload to String
+  String message;
+
+  for (unsigned int i = 0; i < length; i++)
+  {
+    message += (char)payload[i];
   }
 
-  cmd.trim();
-  cmd.toLowerCase();
+  message.trim();
 
   Serial.print("MQTT message on ");
   Serial.print(incomingTopic);
   Serial.print(": ");
-  Serial.println(cmd);
+  Serial.println(message);
 
-  handleCommand(cmd);
-}
+  // -----------------------------
+  // Try parsing as JSON first
+  // -----------------------------
+  StaticJsonDocument<128> doc;
 
-void MQTTController::handleCommand(String cmd) {
-  if (cmd == "forward") {
-    Serial.println( topicName + " = forward");
-    robot.moveRobot(0.0, 1.0, 0.0);
-  }
-  else if (cmd == "backward") {
-    Serial.println( topicName + " = backward");
-    robot.moveRobot(0.0, -1.0, 0.0);
-  }
-  else if (cmd == "right") {
-    Serial.println( topicName + " = right");
-    robot.moveRobot(1.0, 0.0, 0.0);
-  }
-  else if (cmd == "left") {
-    Serial.println( topicName + " = left");
-    robot.moveRobot(-1.0, 0.0, 0.0);
-  }
-  else if (cmd == "rotate clockwise" || cmd == "clockwise" || cmd == "cw") {
-    Serial.println( topicName + " = rotate clockwise");
-    robot.moveRobot(0.0, 0.0, 0.6);
-  }
-  else if (cmd == "rotate counter clockwise" || cmd == "counter clockwise" || cmd == "ccw") {
-    Serial.println( topicName + " = rotate counter clockwise");
-    robot.moveRobot(0.0, 0.0, -0.6);
-  }
-  else if (cmd == "stop") {
-    Serial.println( topicName + " = stop");
-    robot.stopRobot();
-    moveUntil = 0;
+  DeserializationError error =
+      deserializeJson(doc, message);
+
+  if (!error)
+  {
+
+    // JSON detected successfully
+    float vx = doc["vx"] | 0.0f;
+    float vy = doc["vy"] | 0.0f;
+    float w = doc["w"] | 0.0f;
+
+    // Optional safety clamp
+    vx = constrain(vx, -1.0f, 1.0f);
+    vy = constrain(vy, -1.0f, 1.0f);
+    w = constrain(w, -1.0f, 1.0f);
+
+    Serial.println("Parsed JSON movement:");
+    Serial.print("vx = ");
+    Serial.println(vx);
+
+    Serial.print("vy = ");
+    Serial.println(vy);
+
+    Serial.print("w = ");
+    Serial.println(w);
+
+    robot.moveRobot(vx, vy, w);
+
+    moveUntil = millis() + moveDurationMs;
+
     return;
   }
-  else {
+
+  // -----------------------------
+  // Fallback to old text commands
+  // -----------------------------
+  message.toLowerCase();
+
+  handleCommand(message);
+}
+
+void MQTTController::handleCommand(String cmd)
+{
+
+  if (cmd == "forward")
+  {
+
+    Serial.println(topicName + " = forward");
+    robot.moveRobot(0.0, 1.0, 0.0);
+  }
+  else if (cmd == "backward")
+  {
+
+    Serial.println(topicName + " = backward");
+    robot.moveRobot(0.0, -1.0, 0.0);
+  }
+  else if (cmd == "right")
+  {
+
+    Serial.println(topicName + " = right");
+    robot.moveRobot(1.0, 0.0, 0.0);
+  }
+  else if (cmd == "left")
+  {
+
+    Serial.println(topicName + " = left");
+    robot.moveRobot(-1.0, 0.0, 0.0);
+  }
+  else if (
+      cmd == "rotate clockwise" ||
+      cmd == "clockwise" ||
+      cmd == "cw")
+  {
+
+    Serial.println(topicName + " = rotate clockwise");
+    robot.moveRobot(0.0, 0.0, 0.6);
+  }
+  else if (
+      cmd == "rotate counter clockwise" ||
+      cmd == "counter clockwise" ||
+      cmd == "ccw")
+  {
+
+    Serial.println(topicName + " = rotate counter clockwise");
+    robot.moveRobot(0.0, 0.0, -0.6);
+  }
+  else if (cmd == "stop")
+  {
+
+    Serial.println(topicName + " = stop");
+
+    robot.stopRobot();
+
+    moveUntil = 0;
+
+    return;
+  }
+  else
+  {
+
     Serial.println("Unknown command");
+
     return;
   }
 
