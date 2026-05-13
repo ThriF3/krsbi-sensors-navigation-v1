@@ -17,13 +17,13 @@ const char* MQTT_TOPIC = "robot/gerak"; // Opsional, karena di MQTTController.cp
 Navigation robot;
 MQTTController mqtt(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER, MQTT_PORT, MQTT_TOPIC, robot);
 
-// ==========================================
-// 2. KONFIGURASI SENSOR ULTRASONIK 
-// ==========================================
-// PENTING: Pin diubah ke 4 dan 15 agar TIDAK BENTROK dengan pin motor (33 & 32)!
-// Silakan tim hardware ubah colokan kabel sensornya ke pin ini.
-const int trigPin   = 4;  
-const int echoPin   = 15; 
+// -------------------- Ultrasonic + MOSFET pins --------------------
+const int trigPin   = 22;
+const int echoPin   = 23;
+const int mosfetPin = 14;
+
+const int buzzerPin = 16;
+const int LEDPin = 17;
 
 #define SOUND_SPEED 0.034f
 
