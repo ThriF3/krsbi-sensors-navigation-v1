@@ -111,10 +111,7 @@ void MQTTController::handleMessage(
 {
   String incomingTopic = String(topic);
 
-  if (incomingTopic != topicName)
-    return;
-
-  // Convert payload to String
+  // Convert payload ke String
   String message;
 
   for (unsigned int i = 0; i < length; i++)
@@ -129,36 +126,29 @@ void MQTTController::handleMessage(
   Serial.print(": ");
   Serial.println(message);
 
-  // -----------------------------
-  // Try parsing as JSON first
-  // -----------------------------
-  StaticJsonDocument<128> doc;
-
-  DeserializationError error =
-      deserializeJson(doc, message);
-
-  if (!error)
+  // =========================================
+  // HANDLE: robot/gerak
+  // =========================================
+  if (incomingTopic == "robot/gerak")
   {
+    StaticJsonDocument<128> doc;
 
-    // JSON detected successfully
+    DeserializationError error =
+        deserializeJson(doc, message);
+
+    if (error)
+    {
+      Serial.println("JSON gerak invalid");
+      return;
+    }
+
     float vx = doc["vx"] | 0.0f;
     float vy = doc["vy"] | 0.0f;
-    float w = doc["w"] | 0.0f;
+    float w  = doc["w"]  | 0.0f;
 
-    // Optional safety clamp
     vx = constrain(vx, -1.0f, 1.0f);
     vy = constrain(vy, -1.0f, 1.0f);
-    w = constrain(w, -1.0f, 1.0f);
-
-    Serial.println("Parsed JSON movement:");
-    Serial.print("vx = ");
-    Serial.println(vx);
-
-    Serial.print("vy = ");
-    Serial.println(vy);
-
-    Serial.print("w = ");
-    Serial.println(w);
+    w  = constrain(w, -1.0f, 1.0f);
 
     robot.moveRobot(vx, vy, w);
 
@@ -167,12 +157,44 @@ void MQTTController::handleMessage(
     return;
   }
 
-  // -----------------------------
-  // Fallback to old text commands
-  // -----------------------------
-  message.toLowerCase();
+  // =========================================
+  // HANDLE: robot/aksi
+  // =========================================
+  else if (incomingTopic == "robot/aksi")
+  {
+    StaticJsonDocument<128> doc;
 
-  handleCommand(message);
+    DeserializationError error =
+        deserializeJson(doc, message);
+
+    if (error)
+    {
+      Serial.println("JSON aksi invalid");
+      return;
+    }
+
+    String action = doc["action"] | "";
+    int power = doc["power"] | 100;
+
+    // =========================
+    // AKSI KICK
+    // =========================
+    if (action == "kick")
+    {
+      Serial.print("Kick with power: ");
+      Serial.println(power);
+
+      // TODO:
+      // robot.kick(power);
+    }
+
+    return;
+  }
+
+  // =========================================
+  // UNKNOWN TOPIC
+  // =========================================
+  Serial.println("Unknown topic");
 }
 
 void MQTTController::handleCommand(String cmd)

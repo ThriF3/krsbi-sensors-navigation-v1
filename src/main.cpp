@@ -3,14 +3,14 @@
 #include "MQTTController.h"
 
 
-// const char* WIFI_SSID = "HOTSPOT_ITENAS";
-// const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-// const char* MQTT_SERVER = "efee5f5fd4384475aca6ad0900739372.s1.eu.hivemq.cloud";   // change to your broker IP or domain
-// const uint16_t MQTT_PORT = 1883;
-// const char* MQTT_TOPIC = "Navigation";
+const char* WIFI_SSID = "HOTSPOT_ITENAS";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* MQTT_SERVER = "efee5f5fd4384475aca6ad0900739372.s1.eu.hivemq.cloud";   // change to your broker IP or domain
+const uint16_t MQTT_PORT = 1883;
+const char* MQTT_TOPIC = "Navigation";
 
 Navigation robot;
-// MQTTController mqtt(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER, MQTT_PORT, MQTT_TOPIC, robot);
+MQTTController mqtt(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER, MQTT_PORT, MQTT_TOPIC, robot);
 
 // -------------------- Ultrasonic + MOSFET pins --------------------
 const int trigPin   = 33;
@@ -129,15 +129,15 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(mosfetPin, OUTPUT);
-  digitalWrite(mosfetPin, LOW);
+  // pinMode(trigPin, OUTPUT);
+  // pinMode(echoPin, INPUT);
+  // pinMode(mosfetPin, OUTPUT);
+  // digitalWrite(mosfetPin, LOW);
 
-  robot.begin();
-  robot.stopRobot();
+  // robot.begin();
+  // robot.stopRobot();
 
-  // mqtt.begin();
+  mqtt.begin();
 
   lastStateChangeMs = millis();
 
@@ -149,28 +149,28 @@ void loop() {
   unsigned long now = millis();
 
   // Run current motion step
-  runStep(currentStep);
+  // runStep(currentStep);
 
   // Read ultrasonic sensor every loop
   // float distanceCm = readUltrasonicDistanceCm();
 
   // Serial output for each instruction/state
-  Serial.print("Navigation: ");
-  Serial.println(stepName(currentStep));
+  // Serial.print("Navigation: ");
+  // Serial.println(stepName(currentStep));
 
-  // printUltrasonic(distanceCm);
-  // updateMosfetFromDistance(distanceCm);
-  Serial.println("--------------------------------");
+  // // printUltrasonic(distanceCm);
+  // // updateMosfetFromDistance(distanceCm);
+  // Serial.println("--------------------------------");
 
-  digitalWrite(mosfetPin, HIGH);
+  // digitalWrite(mosfetPin, HIGH);
 
-  // Change to the next motion after a fixed duration
-  if (now - lastStateChangeMs >= motionDurationMs) {
-    robot.stopRobot();
-    delay(stopDurationMs);
+  // // Change to the next motion after a fixed duration
+  // if (now - lastStateChangeMs >= motionDurationMs) {
+  //   robot.stopRobot();
+  //   delay(stopDurationMs);
 
-    currentStep = static_cast<TestStep>((currentStep + 1) % TEST_COUNT);
-    lastStateChangeMs = millis();
-  }
-  // mqtt.loop();
+  //   currentStep = static_cast<TestStep>((currentStep + 1) % TEST_COUNT);
+  //   lastStateChangeMs = millis();
+  // }
+  mqtt.loop();
 }
