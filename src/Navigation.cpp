@@ -13,12 +13,15 @@ void Navigation::begin() {
     pinMode(in2Pin[i], OUTPUT);
   }
 
+  // Setup pin penendang
+  pinMode(kickerPin, OUTPUT);
+  digitalWrite(kickerPin, LOW); 
+
   stopRobot();
 }
 
 void Navigation::setMotor(int idx, float speed) {
   speed = constrain(speed, -1.0, 1.0);
-
   int pwmValue = (int)(fabs(speed) * 255.0);
 
   if (speed >= 0) {
@@ -28,7 +31,6 @@ void Navigation::setMotor(int idx, float speed) {
     digitalWrite(in1Pin[idx], LOW);
     digitalWrite(in2Pin[idx], HIGH);
   }
-
   analogWrite(pwmPin[idx], pwmValue);
 }
 
@@ -43,16 +45,13 @@ void Navigation::stopRobot() {
 void Navigation::moveRobot(float vx, float vy, float omega) {
   float wheel[3];
 
-  // Inverse kinematics / movement matrix
   for (int i = 0; i < 3; i++) {
     wheel[i] = (-sin(WHEEL_ANGLES[i]) * vx) +
                ( cos(WHEEL_ANGLES[i]) * vy) +
                ( L * omega);
   }
 
-  // Normalize wheel speeds
   float maxMag = 0.0;
-
   for (int i = 0; i < 3; i++) {
     if (fabs(wheel[i]) > maxMag) {
       maxMag = fabs(wheel[i]);
@@ -68,4 +67,11 @@ void Navigation::moveRobot(float vx, float vy, float omega) {
   for (int i = 0; i < 3; i++) {
     setMotor(i, wheel[i]);
   }
+}
+
+// Logika penendang
+void Navigation::tendang() {
+  digitalWrite(kickerPin, HIGH); 
+  delay(150);                    
+  digitalWrite(kickerPin, LOW);  
 }

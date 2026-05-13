@@ -34,7 +34,10 @@ class MQTTController {
     String topicName;
 
     unsigned long moveUntil = 0;
-    const unsigned long moveDurationMs = 1500;
+    
+    // SINKRONISASI FLUTTER: Set ke 200ms agar robot sigap mengerem
+    // karena aplikasi Flutter mengirim data (throttling) setiap 50ms.
+    const unsigned long moveDurationMs = 200;
 
     void connectWiFi();
     void connectMQTT();
