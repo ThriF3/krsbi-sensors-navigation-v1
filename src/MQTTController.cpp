@@ -83,11 +83,11 @@ void MQTTController::connectMQTT()
     if (client.connect(clientId.c_str()))
     {
       Serial.println("connected");
-      
+
       // SINKRONISASI FLUTTER: Subscribe ke 2 topik spesifik
       client.subscribe("robot/gerak");
       client.subscribe("robot/aksi");
-      
+
       Serial.println("Subscribed to: robot/gerak & robot/aksi");
     }
     else
@@ -127,8 +127,9 @@ void MQTTController::handleMessage(
   DeserializationError error = deserializeJson(doc, message);
 
   // LOGIKA 1: PERGERAKAN (robot/gerak)
-  if (incomingTopic == "robot/gerak") 
+  if (incomingTopic == "robot/gerak")
   {
+    Serial.println("robot/gerak");
     if (!error)
     {
       float vx = doc["vx"] | 0.0f;
@@ -139,10 +140,20 @@ void MQTTController::handleMessage(
       vy = constrain(vy, -1.0f, 1.0f);
       w = constrain(w, -1.0f, 1.0f);
 
+      // Debug output
+      Serial.print("vx: ");
+      Serial.print(vx);
+
+      Serial.print(" | vy: ");
+      Serial.print(vy);
+
+      Serial.print(" | w: ");
+      Serial.println(w);
+
       robot.moveRobot(vx, vy, w);
-      moveUntil = millis() + moveDurationMs; 
+      moveUntil = millis() + moveDurationMs;
     }
-    else 
+    else
     {
       message.toLowerCase();
       handleCommand(message);
@@ -151,14 +162,15 @@ void MQTTController::handleMessage(
   // LOGIKA 2: AKSI TENDANGAN (robot/aksi)
   else if (incomingTopic == "robot/aksi")
   {
+    Serial.println("robot/aksi");
     if (!error)
     {
       String action = doc["action"];
-      
+
       if (action == "kick")
       {
         Serial.println("AKSI: MENENDANG BOLA!");
-        robot.tendang(); 
+        robot.tendang();
       }
     }
   }
@@ -166,18 +178,38 @@ void MQTTController::handleMessage(
 
 void MQTTController::handleCommand(String cmd)
 {
-  if (cmd == "forward") { robot.moveRobot(0.0, 1.0, 0.0); }
-  else if (cmd == "backward") { robot.moveRobot(0.0, -1.0, 0.0); }
-  else if (cmd == "right") { robot.moveRobot(1.0, 0.0, 0.0); }
-  else if (cmd == "left") { robot.moveRobot(-1.0, 0.0, 0.0); }
-  else if (cmd == "rotate clockwise" || cmd == "clockwise" || cmd == "cw") { robot.moveRobot(0.0, 0.0, 0.6); }
-  else if (cmd == "rotate counter clockwise" || cmd == "counter clockwise" || cmd == "ccw") { robot.moveRobot(0.0, 0.0, -0.6); }
-  else if (cmd == "stop") {
+  if (cmd == "forward")
+  {
+    robot.moveRobot(0.0, 1.0, 0.0);
+  }
+  else if (cmd == "backward")
+  {
+    robot.moveRobot(0.0, -1.0, 0.0);
+  }
+  else if (cmd == "right")
+  {
+    robot.moveRobot(1.0, 0.0, 0.0);
+  }
+  else if (cmd == "left")
+  {
+    robot.moveRobot(-1.0, 0.0, 0.0);
+  }
+  else if (cmd == "rotate clockwise" || cmd == "clockwise" || cmd == "cw")
+  {
+    robot.moveRobot(0.0, 0.0, 0.6);
+  }
+  else if (cmd == "rotate counter clockwise" || cmd == "counter clockwise" || cmd == "ccw")
+  {
+    robot.moveRobot(0.0, 0.0, -0.6);
+  }
+  else if (cmd == "stop")
+  {
     robot.stopRobot();
     moveUntil = 0;
     return;
   }
-  else {
+  else
+  {
     Serial.println("Unknown command");
     return;
   }

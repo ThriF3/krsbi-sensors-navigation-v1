@@ -5,11 +5,11 @@
 // ==========================================
 // 1. KONFIGURASI JARINGAN & MQTT
 // ==========================================
-const char* WIFI_SSID = "HOTSPOT_ITENAS";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID = "Lutfi Alamsyah";
+const char* WIFI_PASSWORD = "lutfialamsyah16";
 
 // WAJIB DIGANTI: Gunakan IP IPV4 Laptop HP Victus-mu!
-const char* MQTT_SERVER = "192.168.2.183"; 
+const char* MQTT_SERVER = "10.106.245.210"; 
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_TOPIC = "robot/gerak"; // Opsional, karena di MQTTController.cpp sudah kita hardcode subscibe 2 topik
 
@@ -53,8 +53,8 @@ void setup() {
   Serial.println("=== Inisialisasi Omni Soccer Robot ===");
 
   // Setup Sensor
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+  // pinMode(trigPin, OUTPUT);
+  // pinMode(echoPin, INPUT);
 
   // WAJIB AKTIF: Agar pin motor dan pin penendang diset sebagai OUTPUT
   robot.begin();
